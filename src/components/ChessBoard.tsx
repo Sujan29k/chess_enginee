@@ -14,34 +14,47 @@ export default function ChessBoard({
   playerColor: "w" | "b";
   playerId: string;
 }) {
-  // Main chess game state
   const [game, setGame] = useState(new Chess());
   const gameRef = useRef(game);
 
-  // Keep selected square & legal moves for player
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [legalMoves, setLegalMoves] = useState<Square[]>([]);
-
-  // Track whose turn it is ("w" or "b")
   const [turn, setTurn] = useState<"w" | "b">("w");
-
-  // Track game over message
   const [gameOver, setGameOver] = useState<string | null>(null);
-
-  // Promotion handling (optional)
+  const [moveHistory, setMoveHistory] = useState<Move[]>([]);
   const [promotionMove, setPromotionMove] = useState<{
     from: Square;
     to: Square;
   } | null>(null);
 
+  const [capturedPieces, setCapturedPieces] = useState<{
+    w: Record<PieceSymbol, number>;
+    b: Record<PieceSymbol, number>;
+  }>({
+    w: {
+      p: 0,
+      r: 0,
+      n: 0,
+      b: 0,
+      q: 0,
+      k: 0,
+    },
+    b: {
+      p: 0,
+      r: 0,
+      n: 0,
+      b: 0,
+      q: 0,
+      k: 0,
+    },
+  });
+
   const socket = getSocket();
 
-  // Keep gameRef updated to latest game state for socket events
   useEffect(() => {
     gameRef.current = game;
   }, [game]);
 
-  // Setup socket listeners once on mount
   useEffect(() => {
     socket.emit("join", gameId);
 
@@ -53,7 +66,7 @@ export default function ChessBoard({
       const newGame = new Chess(gameRef.current.fen());
       const result = newGame.move(move);
       if (result) {
-        updateGameAfterMove(newGame, result);
+        updateGameAfterMove(newGame, result, false);
         setSelectedSquare(null);
         setLegalMoves([]);
       }
@@ -66,32 +79,63 @@ export default function ChessBoard({
     };
   }, [gameId, socket]);
 
-  // Update game state and turn after a move
-  const updateGameAfterMove = (newGame: Chess, move: Move) => {
+  const updateGameAfterMove = async (
+    newGame: Chess,
+    move: Move,
+    isLocal = true
+  ) => {
     setGame(newGame);
     setTurn(newGame.turn());
+    setMoveHistory((prev) => [...prev, move]);
+
+    if (move.captured) {
+      const color = move.color === "w" ? "b" : "w"; // Opponent color
+      const captured = move.captured as PieceSymbol;
+
+      setCapturedPieces((prev) => ({
+        ...prev,
+        [color]: {
+          ...prev[color],
+          [captured]: prev[color][captured] + 1,
+        },
+      }));
+    }
 
     if (newGame.isCheckmate()) {
       setGameOver(`Checkmate! ${move.color === "w" ? "White" : "Black"} wins`);
+      await fetch("/api/move/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId }),
+      });
     } else if (newGame.isDraw()) {
       setGameOver("Draw!");
     }
+
+    if (isLocal) {
+      await fetch("/api/move/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameId,
+          from: move.from,
+          to: move.to,
+          promotion: move.promotion,
+        }),
+      });
+    }
   };
 
-  // Handle player clicking a square on the board
   const handleSquareClick = (row: number, col: number) => {
-    if (gameOver) return;
-    if (turn !== playerColor) return; // only allow move on player's turn
+    if (gameOver || turn !== playerColor) return;
 
     const file = "abcdefgh"[col];
     const rank = `${8 - row}`;
     const square = `${file}${rank}` as Square;
 
     if (selectedSquare && legalMoves.includes(square)) {
-      // Try move with default promotion queen
       const newGame = new Chess(game.fen());
       const moveObj = { from: selectedSquare, to: square };
-
       const promotionNeeded = game
         .moves({ square: selectedSquare, verbose: true })
         .find((m) => m.to === square && m.promotion);
@@ -105,17 +149,15 @@ export default function ChessBoard({
       if (move) {
         setSelectedSquare(null);
         setLegalMoves([]);
-        setGame(newGame);
-        setTurn(newGame.turn());
         socket.emit("move", {
           gameId,
           move: { from: move.from, to: move.to, promotion: move.promotion },
         });
+        updateGameAfterMove(newGame, move);
       }
       return;
     }
 
-    // Select piece to move
     const piece = game.get(square);
     if (piece && piece.color === playerColor) {
       const moves = game
@@ -129,88 +171,150 @@ export default function ChessBoard({
     }
   };
 
-  // Handle pawn promotion piece choice
   const handlePromotion = (piece: PieceSymbol) => {
     if (!promotionMove) return;
     const newGame = new Chess(game.fen());
     const move = newGame.move({ ...promotionMove, promotion: piece });
     if (move) {
-      setGame(newGame);
-      setTurn(newGame.turn());
       socket.emit("move", {
         gameId,
         move: { from: move.from, to: move.to, promotion: piece },
       });
+      updateGameAfterMove(newGame, move);
       setPromotionMove(null);
     }
   };
 
-  // Render board squares
   const board = game.board();
   const getPieceImage = (piece: { type: string; color: string }) =>
     `/icpieces/${piece.color}${piece.type.toUpperCase()}.svg`;
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="text-xl font-bold mb-2">Game ID: {gameId}</div>
-      <div className="mb-2 font-semibold">
-        Turn: {turn === "w" ? "White" : "Black"}
-      </div>
-      {gameOver && <div className="text-red-500 font-bold">{gameOver}</div>}
-      <div className="grid grid-cols-8 w-[480px] h-[480px] border-4 border-neutral-800">
-        {board.map((row, rowIndex) =>
-          row.map((square, colIndex) => {
-            const isLight = (rowIndex + colIndex) % 2 === 0;
-            const file = "abcdefgh"[colIndex];
-            const rank = `${8 - rowIndex}`;
-            const squareName = `${file}${rank}` as Square;
-            const isHighlighted = legalMoves.includes(squareName);
-            const isSelected = selectedSquare === squareName;
-
-            let squareColor = isLight ? "bg-gray-300" : "bg-gray-700";
-            if (isHighlighted) squareColor = "bg-green-400";
-            else if (isSelected) squareColor = "bg-yellow-400";
-
-            return (
-              <div
-                key={squareName}
-                className={`aspect-square flex items-center justify-center ${squareColor} cursor-pointer`}
-                onClick={() => handleSquareClick(rowIndex, colIndex)}
-              >
-                {square && (
-                  <Image
-                    src={getPieceImage(square)}
-                    alt={`${square.color}${square.type}`}
-                    width={60}
-                    height={60}
-                    className="w-4/5 h-4/5 object-contain"
-                    priority
-                  />
-                )}
-              </div>
-            );
-          })
+    <div className="flex justify-center items-center gap-6 mt-6">
+      {/* Black Out - Captured by White */}
+      <div className="w-24 flex flex-col items-center">
+        <h4 className="font-bold mb-2">Black Out</h4>
+        {Object.entries(capturedPieces["b"]).map(([type, count]) =>
+          count > 0 ? (
+            <div
+              key={type}
+              className="flex flex-col items-center bg-gray-200 rounded-md p-2 mb-2 shadow"
+            >
+              <Image
+                src={getPieceImage({ type, color: "b" })}
+                alt={type}
+                width={30}
+                height={30}
+              />
+              {count > 1 && (
+                <span className="text-xs text-black mt-1 font-semibold">
+                  ×{count}
+                </span>
+              )}
+            </div>
+          ) : null
         )}
       </div>
 
-      {/* Promotion modal */}
-      {promotionMove && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="bg-white p-4 rounded-md flex gap-4">
-            {(["q", "r", "b", "n"] as PieceSymbol[]).map((p) => (
-              <Image
-                key={p}
-                src={`/icpieces/${game.turn()}${p.toUpperCase()}.svg`}
-                alt={p}
-                width={50}
-                height={50}
-                onClick={() => handlePromotion(p)}
-                className="cursor-pointer hover:scale-110 transition-transform"
-              />
-            ))}
-          </div>
+      {/* Main Board */}
+      <div className="flex flex-col items-center">
+        <div className="text-xl font-bold mb-2">Game ID: {gameId}</div>
+        <div className="mb-2 font-semibold">
+          Turn: {turn === "w" ? "White" : "Black"}
         </div>
-      )}
+        {gameOver && <div className="text-red-500 font-bold">{gameOver}</div>}
+        <div className="grid grid-cols-8 w-[480px] h-[480px] border-4 border-neutral-800">
+          {board.map((row, rowIndex) =>
+            row.map((square, colIndex) => {
+              const isLight = (rowIndex + colIndex) % 2 === 0;
+              const file = "abcdefgh"[colIndex];
+              const rank = `${8 - rowIndex}`;
+              const squareName = `${file}${rank}` as Square;
+              const isHighlighted = legalMoves.includes(squareName);
+              const isSelected = selectedSquare === squareName;
+
+              let squareColor = isLight ? "bg-gray-300" : "bg-gray-700";
+              if (isHighlighted) squareColor = "bg-green-400";
+              else if (isSelected) squareColor = "bg-yellow-400";
+
+              return (
+                <div
+                  key={squareName}
+                  className={`aspect-square flex items-center justify-center ${squareColor} cursor-pointer`}
+                  onClick={() => handleSquareClick(rowIndex, colIndex)}
+                >
+                  {square && (
+                    <Image
+                      src={getPieceImage(square)}
+                      alt={`${square.color}${square.type}`}
+                      width={60}
+                      height={60}
+                      className="w-4/5 h-4/5 object-contain"
+                      priority
+                    />
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {promotionMove && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+            <div className="bg-white p-4 rounded-md flex gap-4">
+              {(["q", "r", "b", "n"] as PieceSymbol[]).map((p) => (
+                <Image
+                  key={p}
+                  src={`/icpieces/${game.turn()}${p.toUpperCase()}.svg`}
+                  alt={p}
+                  width={50}
+                  height={50}
+                  onClick={() => handlePromotion(p)}
+                  className="cursor-pointer hover:scale-110 transition-transform"
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* White Out - Captured by Black */}
+      <div className="w-24 flex flex-col items-center">
+        <h4 className="font-bold mb-2">White Out</h4>
+        {Object.entries(capturedPieces["w"]).map(([type, count]) =>
+          count > 0 ? (
+            <div
+              key={type}
+              className="flex flex-col items-center bg-gray-200 rounded-md p-2 mb-2 shadow"
+            >
+              <Image
+                src={getPieceImage({ type, color: "w" })}
+                alt={type}
+                width={30}
+                height={30}
+              />
+              {count > 1 && (
+                <span className="text-xs text-black mt-1 font-semibold">
+                  ×{count}
+                </span>
+              )}
+            </div>
+          ) : null
+        )}
+      </div>
+
+      {/* Move History */}
+      <div className="w-72 border p-4 bg-white rounded shadow">
+        <h3 className="text-lg font-bold mb-2">Move History</h3>
+        <ol className="list-decimal ml-4 space-y-1 text-sm text-black">
+          {moveHistory.map((move, index) => (
+            <li key={index}>
+              {move.color === "w" ? "White" : "Black"}: {move.from} → {move.to}
+              {move.promotion && ` = ${move.promotion.toUpperCase()}`}
+            </li>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 }
