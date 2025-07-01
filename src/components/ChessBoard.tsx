@@ -9,10 +9,12 @@ export default function ChessBoard({
   gameId,
   playerColor,
   playerId,
+  vsBot = false, // ✅ Added for bot mode
 }: {
   gameId: string;
   playerColor: "w" | "b";
   playerId: string;
+  vsBot?: boolean;
 }) {
   const [game, setGame] = useState(new Chess());
   const gameRef = useRef(game);
@@ -31,22 +33,8 @@ export default function ChessBoard({
     w: Record<PieceSymbol, number>;
     b: Record<PieceSymbol, number>;
   }>({
-    w: {
-      p: 0,
-      r: 0,
-      n: 0,
-      b: 0,
-      q: 0,
-      k: 0,
-    },
-    b: {
-      p: 0,
-      r: 0,
-      n: 0,
-      b: 0,
-      q: 0,
-      k: 0,
-    },
+    w: { p: 0, r: 0, n: 0, b: 0, q: 0, k: 0 },
+    b: { p: 0, r: 0, n: 0, b: 0, q: 0, k: 0 },
   });
 
   const socket = getSocket();
@@ -56,6 +44,8 @@ export default function ChessBoard({
   }, [game]);
 
   useEffect(() => {
+    if (vsBot) return; // ✅ Skip socket logic for bot mode
+
     socket.emit("join", gameId);
 
     const handleMove = (move: {
@@ -73,11 +63,10 @@ export default function ChessBoard({
     };
 
     socket.on("move", handleMove);
-
     return () => {
       socket.off("move", handleMove);
     };
-  }, [gameId, socket]);
+  }, [gameId, socket, vsBot]);
 
   const updateGameAfterMove = async (
     newGame: Chess,
@@ -89,9 +78,8 @@ export default function ChessBoard({
     setMoveHistory((prev) => [...prev, move]);
 
     if (move.captured) {
-      const color = move.color === "w" ? "b" : "w"; // Opponent color
+      const color = move.color === "w" ? "b" : "w";
       const captured = move.captured as PieceSymbol;
-
       setCapturedPieces((prev) => ({
         ...prev,
         [color]: {
@@ -112,7 +100,7 @@ export default function ChessBoard({
       setGameOver("Draw!");
     }
 
-    if (isLocal) {
+    if (isLocal && !vsBot) {
       await fetch("/api/move/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -123,6 +111,24 @@ export default function ChessBoard({
           promotion: move.promotion,
         }),
       });
+    }
+
+    // ✅ Bot Move Trigger
+    if (vsBot && playerColor === "w" && newGame.turn() === "b") {
+      const res = await fetch("/api/bot/move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fen: newGame.fen() }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.move) {
+        const updatedGame = new Chess(newGame.fen());
+        const botMove = updatedGame.move(data.move);
+        if (botMove) {
+          updateGameAfterMove(updatedGame, botMove, false);
+        }
+      }
     }
   };
 
@@ -149,10 +155,12 @@ export default function ChessBoard({
       if (move) {
         setSelectedSquare(null);
         setLegalMoves([]);
-        socket.emit("move", {
-          gameId,
-          move: { from: move.from, to: move.to, promotion: move.promotion },
-        });
+        if (!vsBot) {
+          socket.emit("move", {
+            gameId,
+            move: { from: move.from, to: move.to, promotion: move.promotion },
+          });
+        }
         updateGameAfterMove(newGame, move);
       }
       return;
@@ -176,10 +184,12 @@ export default function ChessBoard({
     const newGame = new Chess(game.fen());
     const move = newGame.move({ ...promotionMove, promotion: piece });
     if (move) {
-      socket.emit("move", {
-        gameId,
-        move: { from: move.from, to: move.to, promotion: piece },
-      });
+      if (!vsBot) {
+        socket.emit("move", {
+          gameId,
+          move: { from: move.from, to: move.to, promotion: piece },
+        });
+      }
       updateGameAfterMove(newGame, move);
       setPromotionMove(null);
     }
@@ -191,7 +201,7 @@ export default function ChessBoard({
 
   return (
     <div className="flex justify-center items-center gap-6 mt-6">
-      {/* Black Out - Captured by White */}
+      {/* Black Out */}
       <div className="w-24 flex flex-col items-center">
         <h4 className="font-bold mb-2">Black Out</h4>
         {Object.entries(capturedPieces["b"]).map(([type, count]) =>
@@ -278,7 +288,7 @@ export default function ChessBoard({
         )}
       </div>
 
-      {/* White Out - Captured by Black */}
+      {/* White Out */}
       <div className="w-24 flex flex-col items-center">
         <h4 className="font-bold mb-2">White Out</h4>
         {Object.entries(capturedPieces["w"]).map(([type, count]) =>

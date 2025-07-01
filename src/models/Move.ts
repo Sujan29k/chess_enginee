@@ -1,4 +1,3 @@
-// models/Move.ts
 import mongoose, { Schema, Document, models, model } from "mongoose";
 
 export interface IMove extends Document {
@@ -14,9 +13,9 @@ const MoveSchema = new Schema<IMove>(
   {
     game: { type: Schema.Types.ObjectId, ref: "Game", required: true },
     player: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    from: String,
-    to: String,
-    promotion: String,
+    from: { type: String, required: true },
+    to: { type: String, required: true },
+    promotion: { type: String },
     timestamp: { type: Date, default: Date.now },
   },
   { timestamps: true }

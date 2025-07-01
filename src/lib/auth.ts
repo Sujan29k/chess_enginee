@@ -1,11 +1,8 @@
-// src/lib/auth.ts
-import GoogleProvider from "next-auth/providers/google"; // Remove if you're not using Google
-import CredentialsProvider from "next-auth/providers/credentials"; // Add if you're using manual login
+import CredentialsProvider from "next-auth/providers/credentials";
 import { AuthOptions } from "next-auth";
 
 export const authOptions: AuthOptions = {
   providers: [
-    // If using credentials login
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -13,7 +10,6 @@ export const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // Replace this with your user lookup logic (e.g., MongoDB + bcrypt)
         const res = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -21,28 +17,34 @@ export const authOptions: AuthOptions = {
         });
 
         const user = await res.json();
-        if (res.ok && user) return user;
+
+        if (res.ok && user) {
+          return {
+            id: user._id?.toString(),
+            name: user.name,
+            email: user.email,
+          };
+        }
         return null;
       },
     }),
-
-    // Optional: Google login
-    // GoogleProvider({
-    //   clientId: process.env.GOOGLE_CLIENT_ID!,
-    //   clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    // }),
   ],
   callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id; // store user id in JWT token
+      }
+      return token;
+    },
     async session({ session, token }) {
-      // attach user ID
-      if (token?.sub) {
-        session.user.id = token.sub;
+      if (token?.id) {
+        session.user.id = token.id as string; // attach user id to session
       }
       return session;
     },
   },
   pages: {
-    signIn: "/login", // optional
+    signIn: "/login", // your custom sign-in page
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

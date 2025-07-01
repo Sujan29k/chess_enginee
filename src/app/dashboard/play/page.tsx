@@ -13,13 +13,12 @@ export default function PlayLobby() {
 
   // 1) Redirect or show loading while auth status isn’t ready
   useEffect(() => {
-    if (status === "loading") return; // still fetching session
+    if (status === "loading") return;
     if (status === "unauthenticated") {
-      router.push("/login"); // force login if not signed in
+      router.push("/login");
     }
   }, [status, router]);
 
-  // 2) Create flow (no need for userId—server reads it)
   const handleCreateGame = async () => {
     setError("");
     const newId = uuid();
@@ -39,12 +38,10 @@ export default function PlayLobby() {
     }
   };
 
-  // 3) Join flow (now `session.user.id` is guaranteed)
   const handleJoinGame = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // At this point status === "authenticated" so session.user is non-null
     const trimmedId = joinGameId.trim();
     const userId = session!.user.id;
 
@@ -67,7 +64,10 @@ export default function PlayLobby() {
     }
   };
 
-  // 4) While loading session, show nothing or a loader
+  const handlePlayVsBot = () => {
+    router.push("/dashboard/play/bot");
+  };
+
   if (status === "loading") {
     return <p>Loading session…</p>;
   }
@@ -99,6 +99,13 @@ export default function PlayLobby() {
           Join Game
         </button>
       </form>
+
+      <button
+        onClick={handlePlayVsBot}
+        className="bg-purple-600 text-white px-6 py-3 rounded text-lg hover:bg-purple-700"
+      >
+        Play vs Bot
+      </button>
 
       {error && <p className="text-red-500">{error}</p>}
     </div>
