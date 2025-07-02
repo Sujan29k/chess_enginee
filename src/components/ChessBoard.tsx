@@ -113,21 +113,29 @@ export default function ChessBoard({
       });
     }
 
-    // ✅ Bot Move Trigger
+    // ✅ Safe bot move request
     if (vsBot && playerColor === "w" && newGame.turn() === "b") {
-      const res = await fetch("/api/bot/move", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fen: newGame.fen() }),
-      });
+      try {
+        const res = await fetch("/api/bot/move", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fen: newGame.fen() }),
+        });
 
-      const data = await res.json();
-      if (res.ok && data.move) {
-        const updatedGame = new Chess(newGame.fen());
-        const botMove = updatedGame.move(data.move);
-        if (botMove) {
-          updateGameAfterMove(updatedGame, botMove, false);
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : null;
+
+        if (res.ok && data?.move) {
+          const updatedGame = new Chess(newGame.fen());
+          const botMove = updatedGame.move(data.move);
+          if (botMove) {
+            updateGameAfterMove(updatedGame, botMove, false);
+          }
+        } else {
+          console.error("Bot move failed:", data);
         }
+      } catch (error) {
+        console.error("Error parsing bot move:", error);
       }
     }
   };
