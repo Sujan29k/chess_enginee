@@ -26,7 +26,7 @@ export default function BotGamePage() {
         />
       ) : (
         <div className="text-xl font-semibold text-gray-600">
-          Preparing bot game...
+          Preparing bot game......
         </div>
       )}
     </div>
