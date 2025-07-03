@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -10,7 +9,7 @@ app.use(cors());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // restrict this in production
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
@@ -27,6 +26,13 @@ io.on("connection", (socket) => {
     console.log(`Move in game ${gameId}:`, move);
     socket.to(gameId).emit("move", move);
   });
+
+  // === UNDO ===
+  // Listen for undo from one player, broadcast (no payload) to the opponent
+  socket.on("undo", ({ gameId, fen }) => {
+    socket.to(gameId).emit("undo", { fen });
+  });
+  
 
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
