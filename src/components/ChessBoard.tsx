@@ -9,7 +9,7 @@ export default function ChessBoard({
   gameId,
   playerColor,
   playerId,
-  vsBot = false, // ✅ Added for bot mode
+  vsBot = false,
 }: {
   gameId: string;
   playerColor: "w" | "b";
@@ -19,11 +19,13 @@ export default function ChessBoard({
   const [game, setGame] = useState(new Chess());
   const gameRef = useRef(game);
 
+  const [fenHistory, setFenHistory] = useState<string[]>([game.fen()]);
+  const [moveHistory, setMoveHistory] = useState<Move[]>([]);
+
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [legalMoves, setLegalMoves] = useState<Square[]>([]);
   const [turn, setTurn] = useState<"w" | "b">("w");
   const [gameOver, setGameOver] = useState<string | null>(null);
-  const [moveHistory, setMoveHistory] = useState<Move[]>([]);
   const [promotionMove, setPromotionMove] = useState<{
     from: Square;
     to: Square;
@@ -44,8 +46,7 @@ export default function ChessBoard({
   }, [game]);
 
   useEffect(() => {
-    if (vsBot) return; // ✅ Skip socket logic for bot mode
-
+    if (vsBot) return;
     socket.emit("join", gameId);
 
     const handleMove = (move: {
@@ -55,18 +56,26 @@ export default function ChessBoard({
     }) => {
       const newGame = new Chess(gameRef.current.fen());
       const result = newGame.move(move);
-      if (result) {
-        updateGameAfterMove(newGame, result, false);
-        setSelectedSquare(null);
-        setLegalMoves([]);
-      }
+      if (result) updateGameAfterMove(newGame, result, false);
+    };
+
+    const handleUndoFromSocket = ({ fen }: { fen: string }) => {
+      const newGame = new Chess(fen);
+      setGame(newGame);
+      setFenHistory((prev) => [...prev.slice(0, -1), fen]);
+      setMoveHistory((prev) => prev.slice(0, -1));
+      setTurn(newGame.turn());
+      setCapturedPieces(recalcCaptures(moveHistory.slice(0, -1)));
     };
 
     socket.on("move", handleMove);
+    socket.on("undo", handleUndoFromSocket);
+
     return () => {
       socket.off("move", handleMove);
+      socket.off("undo", handleUndoFromSocket);
     };
-  }, [gameId, socket, vsBot]);
+  }, [gameId, socket, vsBot, moveHistory]);
 
   const updateGameAfterMove = async (
     newGame: Chess,
@@ -75,6 +84,7 @@ export default function ChessBoard({
   ) => {
     setGame(newGame);
     setTurn(newGame.turn());
+    setFenHistory((prev) => [...prev, newGame.fen()]);
     setMoveHistory((prev) => [...prev, move]);
 
     if (move.captured) {
@@ -82,10 +92,7 @@ export default function ChessBoard({
       const captured = move.captured as PieceSymbol;
       setCapturedPieces((prev) => ({
         ...prev,
-        [color]: {
-          ...prev[color],
-          [captured]: prev[color][captured] + 1,
-        },
+        [color]: { ...prev[color], [captured]: prev[color][captured] + 1 },
       }));
     }
 
@@ -113,7 +120,6 @@ export default function ChessBoard({
       });
     }
 
-    // ✅ Safe bot move request
     if (vsBot && playerColor === "w" && newGame.turn() === "b") {
       try {
         const res = await fetch("/api/bot/move", {
@@ -121,24 +127,57 @@ export default function ChessBoard({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fen: newGame.fen() }),
         });
-
         const text = await res.text();
         const data = text ? JSON.parse(text) : null;
-
         if (res.ok && data?.move) {
-          const updatedGame = new Chess(newGame.fen());
-          const botMove = updatedGame.move(data.move);
-          if (botMove) {
-            updateGameAfterMove(updatedGame, botMove, false);
-          }
-        } else {
-          console.error("Bot move failed:", data);
-        }
-      } catch (error) {
-        console.error("Error parsing bot move:", error);
+          const botGame = new Chess(newGame.fen());
+          const botMove = botGame.move(data.move);
+          if (botMove) updateGameAfterMove(botGame, botMove, false);
+        } else console.error("Bot move failed", data);
+      } catch (err) {
+        console.error("Bot error", err);
       }
     }
   };
+
+  const recalcCaptures = (history: Move[]) => {
+    const init = {
+      w: { p: 0, r: 0, n: 0, b: 0, q: 0, k: 0 },
+      b: { p: 0, r: 0, n: 0, b: 0, q: 0, k: 0 },
+    };
+    return history.reduce((caps, m) => {
+      if (m.captured) {
+        const clr = m.color === "w" ? "b" : "w";
+        caps[clr][m.captured as PieceSymbol]++;
+      }
+      return caps;
+    }, init);
+  };
+
+  const handleUndo = (emit = true) => {
+    if (fenHistory.length <= 1) return;
+    const steps = vsBot ? 2 : 1;
+    let newFens = [...fenHistory];
+    let newMoves = [...moveHistory];
+    for (let i = 0; i < steps && newFens.length > 1; i++) {
+      newFens.pop();
+      newMoves.pop();
+    }
+    const prevFen = newFens[newFens.length - 1];
+    const newGame = new Chess(prevFen);
+    setGame(newGame);
+    setFenHistory(newFens);
+    setMoveHistory(newMoves);
+    setTurn(newGame.turn());
+    setCapturedPieces(recalcCaptures(newMoves));
+    if (!vsBot && emit) {
+      socket.emit("undo", { gameId, fen: prevFen });
+    }
+  };
+
+  const board = game.board();
+  const getPieceImage = (piece: { type: string; color: string }) =>
+    `/icpieces/${piece.color}${piece.type.toUpperCase()}.svg`;
 
   const handleSquareClick = (row: number, col: number) => {
     if (gameOver || turn !== playerColor) return;
@@ -203,44 +242,20 @@ export default function ChessBoard({
     }
   };
 
-  const board = game.board();
-  const getPieceImage = (piece: { type: string; color: string }) =>
-    `/icpieces/${piece.color}${piece.type.toUpperCase()}.svg`;
-
   return (
     <div className="flex justify-center items-center gap-6 mt-6">
-      {/* Black Out */}
-      <div className="w-24 flex flex-col items-center">
-        <h4 className="font-bold mb-2">Black Out</h4>
-        {Object.entries(capturedPieces["b"]).map(([type, count]) =>
-          count > 0 ? (
-            <div
-              key={type}
-              className="flex flex-col items-center bg-gray-200 rounded-md p-2 mb-2 shadow"
-            >
-              <Image
-                src={getPieceImage({ type, color: "b" })}
-                alt={type}
-                width={30}
-                height={30}
-              />
-              {count > 1 && (
-                <span className="text-xs text-black mt-1 font-semibold">
-                  ×{count}
-                </span>
-              )}
-            </div>
-          ) : null
-        )}
-      </div>
-
-      {/* Main Board */}
+      {/* Board and Controls */}
       <div className="flex flex-col items-center">
-        <div className="text-xl font-bold mb-2">Game ID: {gameId}</div>
         <div className="mb-2 font-semibold">
           Turn: {turn === "w" ? "White" : "Black"}
         </div>
         {gameOver && <div className="text-red-500 font-bold">{gameOver}</div>}
+        <button
+          onClick={() => handleUndo()}
+          className="mb-2 px-4 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-500"
+        >
+          Undo Move
+        </button>
         <div className="grid grid-cols-8 w-[480px] h-[480px] border-4 border-neutral-800">
           {board.map((row, rowIndex) =>
             row.map((square, colIndex) => {
@@ -293,31 +308,6 @@ export default function ChessBoard({
               ))}
             </div>
           </div>
-        )}
-      </div>
-
-      {/* White Out */}
-      <div className="w-24 flex flex-col items-center">
-        <h4 className="font-bold mb-2">White Out</h4>
-        {Object.entries(capturedPieces["w"]).map(([type, count]) =>
-          count > 0 ? (
-            <div
-              key={type}
-              className="flex flex-col items-center bg-gray-200 rounded-md p-2 mb-2 shadow"
-            >
-              <Image
-                src={getPieceImage({ type, color: "w" })}
-                alt={type}
-                width={30}
-                height={30}
-              />
-              {count > 1 && (
-                <span className="text-xs text-black mt-1 font-semibold">
-                  ×{count}
-                </span>
-              )}
-            </div>
-          ) : null
         )}
       </div>
 
