@@ -176,8 +176,6 @@ export default function ChessBoard({
   const requestRematch = () => {
     if (rematchRequested) {
       socket.emit("rematch", { gameId });
-
-      // 👇 Reset the board locally too
       const newGame = new Chess();
       setGame(newGame);
       gameRef.current = newGame;
@@ -208,23 +206,28 @@ export default function ChessBoard({
     if (selectedSquare && legalMoves.includes(square)) {
       const newGame = new Chess(game.fen());
       const moveObj = { from: selectedSquare, to: square };
-      const promotionNeeded = game
-        .moves({ square: selectedSquare, verbose: true })
-        .find((m) => m.to === square && m.promotion);
+
+      const verboseMoves = game.moves({
+        square: selectedSquare,
+        verbose: true,
+      });
+      const promotionNeeded = verboseMoves.some(
+        (m) => m.to === square && m.promotion
+      );
 
       if (promotionNeeded) {
         setPromotionMove(moveObj);
         return;
       }
 
-      const move = newGame.move({ ...moveObj, promotion: "q" });
+      const move = newGame.move(moveObj);
       if (move) {
         setSelectedSquare(null);
         setLegalMoves([]);
         if (!vsBot) {
           socket.emit("move", {
             gameId,
-            move: { from: move.from, to: move.to, promotion: move.promotion },
+            move: { from: move.from, to: move.to },
           });
         }
         updateGameAfterMove(newGame, move);
@@ -244,22 +247,33 @@ export default function ChessBoard({
       setLegalMoves([]);
     }
   };
-
   const handlePromotion = (piece: PieceSymbol) => {
     if (!promotionMove) return;
+
     const newGame = new Chess(game.fen());
     const move = newGame.move({ ...promotionMove, promotion: piece });
+
     if (move) {
+      updateGameAfterMove(newGame, move);
+      setGame(newGame); // Important
+      gameRef.current = newGame; // VERY Important
+      setSelectedSquare(null);
+      setLegalMoves([]);
+      setPromotionMove(null);
+
       if (!vsBot) {
         socket.emit("move", {
           gameId,
-          move: { from: move.from, to: move.to, promotion: piece },
+          move: {
+            from: move.from,
+            to: move.to,
+            promotion: piece,
+          },
         });
       }
-      updateGameAfterMove(newGame, move);
-      setPromotionMove(null);
     }
   };
+
   useEffect(() => {
     if (!vsBot || gameOver || turn === playerColor) return;
 
@@ -272,126 +286,157 @@ export default function ChessBoard({
       if (result) {
         updateGameAfterMove(newGame, result, false);
       }
-    }, 500); // Optional delay
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [vsBot, game, turn, playerColor, gameOver]);
 
   return (
-    <div className="flex gap-6 mt-6">
-      <div className="w-24">
-        <h4 className="font-bold mb-2">Black Captured</h4>
-        {Object.entries(capturedPieces.b).map(([type, count]) =>
-          count > 0 ? (
-            <div key={type} className="mb-1">
-              <Image
-                src={`/icpieces/b${type.toUpperCase()}.svg`}
-                alt={type}
-                width={30}
-                height={30}
-              />
-              ×{count}
-            </div>
-          ) : null
-        )}
-      </div>
-
-      <div className="flex flex-col items-center">
-        <div className="text-xl font-bold mb-2">Game ID: {gameId}</div>
-        <div className="mb-2 font-semibold">
-          Turn: {turn === "w" ? "White" : "Black"}
-        </div>
-        {gameOver && (
-          <div className="text-red-500 font-bold mb-2">{gameOver}</div>
-        )}
-
-        {rematchAvailable && (
-          <button
-            onClick={requestRematch}
-            className="mb-2 px-4 py-1 bg-blue-600 text-white rounded"
-          >
-            {rematchRequested ? "Confirm Rematch" : "Rematch"}
-          </button>
-        )}
-
-        <button
-          onClick={handleUndo}
-          className="mb-2 px-4 py-1 bg-yellow-400 text-black rounded"
-        >
-          Undo
-        </button>
-
-        <button
-          onClick={handleQuit}
-          className="mb-4 px-4 py-1 bg-red-500 text-white rounded"
-        >
-          Quit
-        </button>
-
-        {/* Chess board */}
-        <div className="grid grid-cols-8 w-[480px] h-[480px] border-4 border-neutral-800">
-          {game.board().map((row, rowIndex) =>
-            row.map((_, colIndex) => {
-              const square = ("abcdefgh"[colIndex] + (8 - rowIndex)) as Square;
-              const piece = game.get(square);
-              const isLight = (rowIndex + colIndex) % 2 === 0;
-              const isHighlighted = legalMoves.includes(square);
-              const isSelected = selectedSquare === square;
-              let bg = isLight ? "bg-gray-300" : "bg-gray-700";
-              if (isHighlighted) bg = "bg-green-400";
-              else if (isSelected) bg = "bg-yellow-400";
-
-              return (
-                <div
-                  key={square}
-                  className={`aspect-square flex items-center justify-center ${bg} cursor-pointer`}
-                  onClick={() => handleSquareClick(rowIndex, colIndex)}
-                >
-                  {piece && (
-                    <Image
-                      src={`/icpieces/${
-                        piece.color
-                      }${piece.type.toUpperCase()}.svg`}
-                      alt={piece.type}
-                      width={60}
-                      height={60}
-                    />
-                  )}
-                </div>
-              );
-            })
+    <>
+      <div className="flex gap-6 mt-6">
+        {/* Left: Captures */}
+        <div className="w-24">
+          <h4 className="font-bold mb-2">Black Captured</h4>
+          {Object.entries(capturedPieces.b).map(([type, count]) =>
+            count > 0 ? (
+              <div key={type} className="mb-1">
+                <Image
+                  src={`/icpieces/b${type.toUpperCase()}.svg`}
+                  alt={type}
+                  width={30}
+                  height={30}
+                />
+                ×{count}
+              </div>
+            ) : null
           )}
         </div>
 
-        {/* Move history */}
-        <div className="mt-4 text-sm">
-          <h4 className="font-semibold mb-1">Moves:</h4>
-          <ol className="list-decimal pl-5">
-            {moveHistory.map((m, idx) => (
-              <li key={idx}>{`${m.color === "w" ? "White" : "Black"}: ${
-                m.san
-              }`}</li>
-            ))}
-          </ol>
+        {/* Center: Board */}
+        <div className="flex flex-col items-center">
+          <div className="text-xl font-bold mb-2">Game ID: {gameId}</div>
+          <div className="mb-2 font-semibold">
+            Turn: {turn === "w" ? "White" : "Black"}
+          </div>
+          {gameOver && (
+            <div className="text-red-500 font-bold mb-2">{gameOver}</div>
+          )}
+
+          {rematchAvailable && (
+            <button
+              onClick={requestRematch}
+              className="mb-2 px-4 py-1 bg-blue-600 text-white rounded"
+            >
+              {rematchRequested ? "Confirm Rematch" : "Rematch"}
+            </button>
+          )}
+
+          <button
+            onClick={handleUndo}
+            className="mb-2 px-4 py-1 bg-yellow-400 text-black rounded"
+          >
+            Undo
+          </button>
+
+          <button
+            onClick={handleQuit}
+            className="mb-4 px-4 py-1 bg-red-500 text-white rounded"
+          >
+            Quit
+          </button>
+
+          <div className="grid grid-cols-8 w-[480px] h-[480px] border-4 border-neutral-800">
+            {game.board().map((row, rowIndex) =>
+              row.map((_, colIndex) => {
+                const square = ("abcdefgh"[colIndex] +
+                  (8 - rowIndex)) as Square;
+                const piece = game.get(square);
+                const isLight = (rowIndex + colIndex) % 2 === 0;
+                const isHighlighted = legalMoves.includes(square);
+                const isSelected = selectedSquare === square;
+                let bg = isLight ? "bg-gray-300" : "bg-gray-700";
+                if (isHighlighted) bg = "bg-green-400";
+                else if (isSelected) bg = "bg-yellow-400";
+
+                return (
+                  <div
+                    key={square}
+                    className={`aspect-square flex items-center justify-center ${bg} cursor-pointer`}
+                    onClick={() => handleSquareClick(rowIndex, colIndex)}
+                  >
+                    {piece && (
+                      <Image
+                        src={`/icpieces/${
+                          piece.color
+                        }${piece.type.toUpperCase()}.svg`}
+                        alt={piece.type}
+                        width={60}
+                        height={60}
+                      />
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Right: White Captured + Move History */}
+        <div className="w-40">
+          <div className="mb-4">
+            <h4 className="font-bold mb-2">White Captured</h4>
+            {Object.entries(capturedPieces.w).map(([type, count]) =>
+              count > 0 ? (
+                <div key={type} className="mb-1">
+                  <Image
+                    src={`/icpieces/w${type.toUpperCase()}.svg`}
+                    alt={type}
+                    width={30}
+                    height={30}
+                  />
+                  ×{count}
+                </div>
+              ) : null
+            )}
+          </div>
+
+          <div className="text-sm">
+            <h4 className="font-semibold mb-1">Moves:</h4>
+            <ol className="list-decimal pl-5 max-h-60 overflow-y-auto">
+              {moveHistory.map((m, idx) => (
+                <li key={idx}>{`${m.color === "w" ? "White" : "Black"}: ${
+                  m.san
+                }`}</li>
+              ))}
+            </ol>
+          </div>
         </div>
       </div>
 
-      <div className="w-24">
-        <h4 className="font-bold mb-2">White Captured</h4>
-        {Object.entries(capturedPieces.w).map(([type, count]) =>
-          count > 0 ? (
-            <div key={type} className="mb-1">
-              <Image
-                src={`/icpieces/w${type.toUpperCase()}.svg`}
-                alt={type}
-                width={30}
-                height={30}
-              />
-              ×{count}
+      {/* Promotion UI */}
+      {promotionMove && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center">
+            <h2 className="text-lg font-bold mb-2">Choose Promotion</h2>
+            <div className="flex gap-4">
+              {["q", "r", "n", "b"].map((p) => (
+                <button
+                  key={p}
+                  onClick={() => handlePromotion(p as PieceSymbol)}
+                  className="border p-2 hover:bg-gray-200 rounded"
+                >
+                  <Image
+                    src={`/icpieces/${playerColor}${p.toUpperCase()}.svg`}
+                    alt={p}
+                    width={40}
+                    height={40}
+                  />
+                </button>
+              ))}
             </div>
-          ) : null
-        )}
-      </div>
-    </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
