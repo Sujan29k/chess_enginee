@@ -9,7 +9,7 @@ app.use(cors());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "*", // In production, restrict this to your domain
     methods: ["GET", "POST"],
   },
 });
@@ -27,19 +27,31 @@ io.on("connection", (socket) => {
     socket.to(gameId).emit("move", move);
   });
 
-  // === UNDO ===
-  // Listen for undo from one player, broadcast (no payload) to the opponent
   socket.on("undo", ({ gameId, fen }) => {
+    console.log(`Undo in game ${gameId} by ${socket.id}`);
     socket.to(gameId).emit("undo", { fen });
+  });
+
+  socket.on("quit", ({ gameId, playerId }) => {
+    socket.to(gameId).emit("opponentQuit", { playerId });
+  });
+  
+  socket.on("rematchRequest", ({ gameId }) => {
+    socket.to(gameId).emit("rematchRequest");
+  });
+  
+  socket.on("rematch", ({ gameId }) => {
+    socket.to(gameId).emit("rematch");
   });
   
 
-  socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
-  });
-});
 
-const PORT = 3001;
-server.listen(PORT, () => {
-  console.log(`✅ Socket.IO server listening on http://localhost:${PORT}`);
-});
+    socket.on("disconnect", () => {
+      console.log("Client disconnected:", socket.id);
+    });
+  }); // Ensure this closing bracket is correctly placed
+
+  const PORT = 3001;
+  server.listen(PORT, () => {
+    console.log(`✅ Socket.IO server listening on http://localhost:${PORT}`);
+  });
