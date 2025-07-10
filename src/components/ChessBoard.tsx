@@ -11,11 +11,13 @@ export default function ChessBoard({
   playerColor,
   playerId,
   vsBot = false,
+  level = 10, // Default bot level
 }: {
   gameId: string;
   playerColor: "w" | "b";
   playerId: string;
   vsBot?: boolean;
+  level?: number; // Bot difficulty level
 }) {
   const [game, setGame] = useState(new Chess());
   const gameRef = useRef(game);
@@ -33,7 +35,7 @@ export default function ChessBoard({
   } | null>(null);
   const [rematchRequested, setRematchRequested] = useState(false);
   const [rematchAvailable, setRematchAvailable] = useState(false);
-  const [botLevel, setBotLevel] = useState(10); // Default difficulty
+  const [botLevel, setBotLevel] = useState(level); // Default difficulty
 
   const [capturedPieces, setCapturedPieces] = useState<{
     w: Record<PieceSymbol, number>;
