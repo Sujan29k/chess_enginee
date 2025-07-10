@@ -3,9 +3,8 @@ import path from "path";
 import { spawn } from "child_process";
 
 export async function POST(req: NextRequest) {
-  const { fen } = await req.json();
+  const { fen, level = 10 } = await req.json(); // Default level is 10
   const stockfishPath = path.resolve("stockfish/stockfish/stockfish-macos-m1-apple-silicon");
-
 
   return new Promise((resolve) => {
     try {
@@ -13,6 +12,7 @@ export async function POST(req: NextRequest) {
       let bestMove = "";
 
       engine.stdin.write("uci\n");
+      engine.stdin.write(`setoption name Skill Level value ${level}\n`);
       engine.stdin.write(`position fen ${fen}\n`);
       engine.stdin.write("go depth 15\n");
 

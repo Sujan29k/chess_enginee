@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Chess, Square, Move, PieceSymbol } from "chess.js";
 import Image from "next/image";
 import { getSocket } from "@/lib/socket";
+import ChatBox from "@/components/ChatBox"; // <-- Import ChatBox
 
 export default function ChessBoard({
   gameId,
@@ -32,6 +33,7 @@ export default function ChessBoard({
   } | null>(null);
   const [rematchRequested, setRematchRequested] = useState(false);
   const [rematchAvailable, setRematchAvailable] = useState(false);
+  const [botLevel, setBotLevel] = useState(10); // Default difficulty
 
   const [capturedPieces, setCapturedPieces] = useState<{
     w: Record<PieceSymbol, number>;
@@ -277,19 +279,25 @@ export default function ChessBoard({
   useEffect(() => {
     if (!vsBot || gameOver || turn === playerColor) return;
 
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
+      const res = await fetch("/api/bot/move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fen: game.fen(), level: botLevel }),
+      });
+
+      const data = await res.json();
+      if (!data.move) return;
+
       const newGame = new Chess(game.fen());
-      const moves = newGame.moves({ verbose: true });
-      if (moves.length === 0) return;
-      const move = moves[Math.floor(Math.random() * moves.length)];
-      const result = newGame.move(move);
+      const result = newGame.move(data.move);
       if (result) {
         updateGameAfterMove(newGame, result, false);
       }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [vsBot, game, turn, playerColor, gameOver]);
+  }, [vsBot, game, turn, playerColor, gameOver, botLevel]);
 
   return (
     <>
@@ -412,6 +420,31 @@ export default function ChessBoard({
           </div>
         </div>
       </div>
+
+      {!vsBot && (
+        <div className="mt-6 flex justify-center text-black">
+          <ChatBox gameId={gameId} playerId={playerId} />
+        </div>
+      )}
+      {vsBot && (
+        <div className="mb-4 flex items-center gap-2">
+          <label htmlFor="difficulty" className="font-semibold">
+            Bot Difficulty:
+          </label>
+          <select
+            id="difficulty"
+            value={botLevel}
+            onChange={(e) => setBotLevel(Number(e.target.value))}
+            className="border px-2 py-1 rounded"
+          >
+            {Array.from({ length: 21 }, (_, i) => (
+              <option key={i} value={i}>
+                Level {i}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Promotion UI */}
       {promotionMove && (
