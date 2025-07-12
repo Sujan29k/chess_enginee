@@ -73,11 +73,31 @@ export default function ChessBoard({
 
     socket.on(
       "opponentQuit",
-      ({ playerId: quitterId }: { playerId: string }) => {
+      async ({ playerId: quitterId }: { playerId: string }) => {
         if (quitterId !== playerId) {
           alert("Your opponent has quit the game.");
           setGameOver("Opponent has quit the game.");
           setRematchAvailable(true);
+
+          // ✅ Award 20 points if multiplayer
+          if (!vsBot) {
+            try {
+              const res = await fetch("/api/games/win", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  winnerId: playerId,
+                  type: "player",
+                }),
+              });
+
+              const result = await res.json();
+              console.log("✅ Result from /api/games/win:", result);
+            } catch (err) {
+              console.error("❌ Failed to award points on opponent quit:", err);
+              alert("Failed to update your points. Please try again later.");
+            }
+          }
         }
       }
     );
@@ -115,7 +135,11 @@ export default function ChessBoard({
     };
   }, [gameId, socket, vsBot, moveHistory, playerId]);
 
-  const updateGameAfterMove = (newGame: Chess, move: Move, isLocal = true) => {
+  const updateGameAfterMove = async (
+    newGame: Chess,
+    move: Move,
+    isLocal = true
+  ) => {
     setGame(newGame);
     setFenHistory((prev) => [...prev, newGame.fen()]);
     setMoveHistory((prev) => [...prev, move]);
@@ -136,6 +160,24 @@ export default function ChessBoard({
     if (newGame.isCheckmate()) {
       setGameOver(`Checkmate! ${move.color === "w" ? "White" : "Black"} wins`);
       setRematchAvailable(true);
+
+      const winner = move.color;
+      if (playerColor === winner) {
+        try {
+          await fetch("/api/game/win", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              winnerId: playerId,
+              type: vsBot ? "bot" : "player",
+              botLevel: vsBot ? botLevel : undefined,
+            }),
+          });
+        } catch (error) {
+          console.error("Failed to update points:", error);
+          alert("Failed to update your points. Please try again later.");
+        }
+      }
     } else if (newGame.isDraw()) {
       setGameOver("Draw!");
       setRematchAvailable(true);

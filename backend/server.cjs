@@ -33,8 +33,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("quit", ({ gameId, playerId }) => {
+    console.log(`Player ${playerId} quit game ${gameId}`);
     socket.to(gameId).emit("opponentQuit", { playerId });
   });
+  
 
   socket.on("rematchRequest", ({ gameId }) => {
     socket.to(gameId).emit("rematchRequest");
