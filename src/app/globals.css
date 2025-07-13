@@ -1,5 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Winky+Rough:ital,wght@0,300..900;1,300..900&display=swap');
 @import "tailwindcss";
 @import "tailwindcss/preflight";
+
 @tailwind utilities;
 
 

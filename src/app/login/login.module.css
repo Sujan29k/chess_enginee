@@ -1,0 +1,110 @@
+/* Background styling for the entire page */
+.loginContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: url('/chess.jpeg') no-repeat center center fixed;
+    background-size: cover;
+    color: #e0e0e0; /* Light text for dark theme */
+  }
+  
+  /* Card styling */
+  .loginCard {
+    display: flex;
+    width: 800px;
+    background-color: #1e1e1e; /* Dark background for the card */
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+  }
+  
+  /* Left panel styling */
+  .loginLeft {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.8); /* Semi-transparent black overlay */
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+  }
+  
+  .overlay {
+    text-align: center;
+  }
+  
+  .title {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  
+  .subtitle {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  
+  /* Right panel styling */
+  .loginRight {
+    flex: 1;
+    padding: 40px;
+  }
+  
+  .formTitle {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #ffffff;
+  }
+  
+  .errorBox {
+    color: #ff4d4d;
+    background-color: #3a3a3a; /* Dark background for error box */
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .loginForm {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .loginForm label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+  }
+  
+  .loginForm input {
+    padding: 10px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    font-size: 14px;
+    background-color: #2a2a2a; /* Dark input background */
+    color: #ffffff;
+  }
+  
+  .loginForm input:focus {
+    outline: none;
+    border-color: #007aff;
+  }
+  
+  .loginForm button {
+    padding: 10px;
+    background-color: #007aff;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .loginForm button:hover {
+    background-color: #005bb5;
+  }
