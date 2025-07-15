@@ -1,7 +1,7 @@
-// src/app/signup/page.tsx
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import styles from "../login/login.module.css"; // ✅ Reuse the login styles
 
 export default function SignupPage() {
   const router = useRouter();
@@ -29,40 +29,67 @@ export default function SignupPage() {
     }
   };
 
+  const goToLogin = () => router.push("/login");
+
   return (
-    <div className="max-w-md mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Create Account</h1>
-      <form onSubmit={handleSignup} className="space-y-4">
-        <input
-          type="text"
-          placeholder="Name"
-          className="w-full border p-2 rounded"
-          required
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full border p-2 rounded"
-          required
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full border p-2 rounded"
-          required
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-        />
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-        >
-          Sign Up
-        </button>
-        {error && <p className="text-red-500">{error}</p>}
-        {success && <p className="text-green-600">{success}</p>}
-      </form>
+    <div className={styles.loginContainer}>
+      <div className={styles.loginCard}>
+        {/* Left Panel */}
+        <div className={styles.loginLeft}>
+          <h2 className={styles.title}>Join the Journey</h2>
+          <p className={styles.subtitle}>
+            Unlock exclusive features and be part of a growing community. Sign up now and elevate your game.
+          </p>
+        </div>
+
+        {/* Right Panel (Signup Form) */}
+        <div className={styles.loginRight}>
+          <form onSubmit={handleSignup} style={{ width: "100%" }}>
+            <h2 className={styles.formTitle}>Sign Up</h2>
+            <div>
+              <input
+                type="text"
+                placeholder="Name"
+                className={styles.inputField}
+                value={form.name}
+                required
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <input
+                type="email"
+                placeholder="Email"
+                className={styles.inputField}
+                value={form.email}
+                required
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <input
+                type="password"
+                placeholder="Password"
+                className={styles.inputField}
+                value={form.password}
+                required
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+              />
+            </div>
+            {error && <p className={styles.error}>{error}</p>}
+            {success && <p className="text-green-400 mt-2">{success}</p>}
+            <button type="submit" className={styles.loginButton}>
+              Sign Up
+            </button>
+            <div className={styles.signupOption}>
+              <p>Already have an account?</p>
+              <button type="button" onClick={goToLogin} className={styles.signupButton}>
+                Login
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

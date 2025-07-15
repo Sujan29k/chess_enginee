@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import styles from "./login.module.css";
 
 export default function LoginPage() {
@@ -29,10 +29,14 @@ export default function LoginPage() {
     setLoading(false);
 
     if (res?.error) {
-      setError("Invalid email or password");
+      setError(res.error);
     } else {
       router.push("/dashboard");
     }
+  };
+
+  const handleSignUp = () => {
+    router.push("/signup");
   };
 
   return (
@@ -40,41 +44,43 @@ export default function LoginPage() {
       <div className={styles.loginCard}>
         {/* Left Panel */}
         <div className={styles.loginLeft}>
-          <div className={styles.overlay}>
-            <h2 className={styles.title}>Welcome Back</h2>
-            <p className={styles.subtitle}>
-              Explore your dashboard and continue your journey with strategy and
-              focus.
-            </p>
-          </div>
+          <h2 className={styles.title}>Welcome Back</h2>
+          <p className={styles.subtitle}>
+            Discover new strategies and insights to elevate your journey. Let's get started!
+          </p>
         </div>
 
         {/* Right Panel */}
         <div className={styles.loginRight}>
-          <h3 className={styles.formTitle}>Login</h3>
-
-          {error && <div className={styles.errorBox}>{error}</div>}
-
-          <form onSubmit={handleLogin} className={styles.loginForm}>
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
-
-            <button type="submit" disabled={loading}>
+          <form onSubmit={handleLogin} style={{ width: "100%", maxWidth: "350px" }}>
+            <div>
+              <input
+                type="email"
+                placeholder="Email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className={styles.inputField}
+              />
+            </div>
+            <div>
+              <input
+                type="password"
+                placeholder="Password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                className={styles.inputField}
+              />
+            </div>
+            {error && <p className={styles.error}>{error}</p>}
+            <button type="submit" disabled={loading} className={styles.loginButton}>
               {loading ? "Logging in..." : "Login"}
             </button>
+            <div className={styles.signupOption}>
+              <p>Don't have an account?</p>
+              <button type="button" onClick={handleSignUp} className={styles.signupButton}>
+                Sign Up
+              </button>
+            </div>
           </form>
         </div>
       </div>
