@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import styles from "./dashboard.module.css";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -17,11 +18,11 @@ export default function DashboardPage() {
   if (status === "loading") return <p>Loading...</p>;
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen gap-4">
-      <h1 className="text-2xl font-bold">Welcome, {session?.user?.name}</h1>
+    <div className={styles.dashboardContainer}>
+      <h1 className={styles.welcomeText}>Welcome, {session?.user?.name}</h1>
       <button
         onClick={() => router.push("/dashboard/play")}
-        className="bg-blue-500 px-4 py-2 text-white rounded"
+        className={styles.lobbyButton}
       >
         Go to Lobby
       </button>

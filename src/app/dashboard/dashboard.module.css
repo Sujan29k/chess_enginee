@@ -1,0 +1,50 @@
+.dashboardContainer {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #121212, #1e1e1e);
+    color: #f0f0f0;
+    font-family: 'Poppins', sans-serif;
+    padding: 20px;
+  }
+  
+  .welcomeText {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+    text-align: center;
+  }
+  
+  .lobbyButton {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+  }
+  
+  .lobbyButton:hover {
+    background: linear-gradient(135deg, #0056b3, #003f8a);
+    transform: scale(1.05);
+    box-shadow: 0 8px 14px rgba(0, 0, 0, 0.4);
+  }
+  
+  @media (max-width: 600px) {
+    .welcomeText {
+      font-size: 24px;
+    }
+  
+    .lobbyButton {
+      font-size: 16px;
+      padding: 10px 20px;
+    }
+  }
+  

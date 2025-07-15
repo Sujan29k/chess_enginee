@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getSocket } from "@/lib/socket";
+import styles from "@/styles/ChatBox.module.css";
 
 type ChatBoxProps = {
   gameId: string;
@@ -34,27 +35,25 @@ export default function ChatBox({ gameId, playerId }: ChatBoxProps) {
   };
 
   return (
-    <div className="w-[320px] max-h-[300px] bg-white border rounded-lg shadow-lg p-3 flex flex-col">
-      <div className="flex-1 overflow-y-auto mb-2 border-b pb-2">
+    <div className={styles.chatBox}>
+      <div className={styles.messages}>
         {messages.map((msg, idx) => (
-          <div key={idx} className="text-sm">
-            <strong>{msg.id === playerId ? "You" : "Opponent"}:</strong> {msg.text}
+          <div key={idx} className={styles.message}>
+            <strong>{msg.id === playerId ? "You" : "Opponent"}:</strong>{" "}
+            {msg.text}
           </div>
         ))}
       </div>
-      <div className="flex gap-2">
+      <div className={styles.inputRow}>
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          className="flex-1 border rounded px-2 py-1 text-sm"
-          placeholder="Type a message"
+          className={styles.inputField}
+          placeholder="Type a message..."
         />
-        <button
-          onClick={sendMessage}
-          className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-        >
+        <button onClick={sendMessage} className={styles.sendButton}>
           Send
         </button>
       </div>

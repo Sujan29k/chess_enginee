@@ -1,0 +1,60 @@
+.chatBox {
+    width: 320px;
+    height: 100%;
+    max-height: 400px;
+    background-color: #1f1f1f;
+    border: 1px solid #444;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    color: #f1f1f1;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    padding-right: 4px;
+    scrollbar-width: thin;
+  }
+  
+  .message {
+    font-size: 14px;
+    margin-bottom: 8px;
+    word-break: break-word;
+  }
+  
+  .inputRow {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  
+  .inputField {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    background-color: #2a2a2a;
+    color: #fff;
+    font-size: 14px;
+  }
+  
+  .sendButton {
+    padding: 8px 12px;
+    background-color: #4a90e2;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .sendButton:hover {
+    background-color: #357ac7;
+  }
+  

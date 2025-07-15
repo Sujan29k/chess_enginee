@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import styles from "./leaderboard.module.css"; // Adjust path as needed
 
 const Leaderboard = () => {
   const [users, setUsers] = useState<
@@ -17,23 +18,31 @@ const Leaderboard = () => {
   }, []);
 
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">🏆 Leaderboard</h1>
-      <ul className="bg-white shadow rounded p-4 text-black">
-        {users.map(
-          (
-            user: { _id: string; username: string; points: number },
-            index: number
-          ) => (
-            <li key={user._id} className="mb-2 flex justify-between">
+    <div className={styles.leaderboardContainer}>
+      <div className={styles.leaderboardCard}>
+        <h1 className={styles.leaderboardTitle}>🏆 Leaderboard</h1>
+        <ul>
+          {users.map((user, index) => (
+            <li
+              key={user._id}
+              className={`${styles.userItem} ${
+                index === 0
+                  ? styles.firstPlace
+                  : index === 1
+                  ? styles.secondPlace
+                  : index === 2
+                  ? styles.thirdPlace
+                  : ""
+              }`}
+            >
               <span>
-                {index + 1}. {user.username}
+                #{index + 1} — {user.username}
               </span>
               <span>{user.points} pts</span>
             </li>
-          )
-        )}
-      </ul>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 };

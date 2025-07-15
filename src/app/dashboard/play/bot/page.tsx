@@ -3,15 +3,15 @@
 import ChessBoard from "@/components/ChessBoard";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import styles from "./bot.module.css";
 
 export default function BotGamePage() {
   const [playerId, setPlayerId] = useState("");
   const [gameReady, setGameReady] = useState(false);
-  const [level, setLevel] = useState(10); // <-- Track level
+  const [level, setLevel] = useState(10);
 
   useEffect(() => {
-    const id = uuidv4();
-    setPlayerId(id);
+    setPlayerId(uuidv4());
   }, []);
 
   const handleStart = () => {
@@ -20,12 +20,12 @@ export default function BotGamePage() {
 
   if (!gameReady) {
     return (
-      <div className="flex flex-col justify-center items-center h-screen gap-4 text-white">
-        <h2 className="text-xl">Select Bot Difficulty</h2>
+      <div className={styles.botContainer}>
+        <h2 className={styles.title}>Select Bot Difficulty</h2>
         <select
           value={level}
           onChange={(e) => setLevel(Number(e.target.value))}
-          className="p-2 rounded bg-gray-800 text-white"
+          className={styles.select}
         >
           {Array.from({ length: 21 }, (_, i) => (
             <option key={i} value={i}>
@@ -33,10 +33,7 @@ export default function BotGamePage() {
             </option>
           ))}
         </select>
-        <button
-          onClick={handleStart}
-          className="px-6 py-2 bg-blue-600 text-white rounded"
-        >
+        <button onClick={handleStart} className={styles.button}>
           Start Game
         </button>
       </div>
@@ -44,13 +41,13 @@ export default function BotGamePage() {
   }
 
   return (
-    <div className="flex justify-center items-center h-screen">
+    <div className={styles.boardWrapper}>
       <ChessBoard
         gameId="vs-bot"
         playerColor="w"
         vsBot={true}
         playerId={playerId}
-        level={level} // <-- Pass selected level here
+        level={level}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { v4 as uuid } from "uuid";
 import { useSession } from "next-auth/react";
+import styles from "./play.module.css"; // 👈 import the CSS module
 
 export default function PlayLobby() {
   const router = useRouter();
@@ -11,7 +12,6 @@ export default function PlayLobby() {
   const [joinGameId, setJoinGameId] = useState("");
   const [error, setError] = useState("");
 
-  // 1) Redirect or show loading while auth status isn’t ready
   useEffect(() => {
     if (status === "loading") return;
     if (status === "unauthenticated") {
@@ -68,46 +68,32 @@ export default function PlayLobby() {
     router.push("/dashboard/play/bot");
   };
 
-  if (status === "loading") {
-    return <p>Loading session…</p>;
-  }
+  if (status === "loading") return <p>Loading session…</p>;
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen gap-6">
-      <button
-        onClick={handleCreateGame}
-        className="bg-green-600 text-white px-6 py-3 rounded text-lg hover:bg-green-700"
-      >
+    <div className={styles.playLobbyContainer}>
+      <button onClick={handleCreateGame} className={styles.playButton}>
         Create New Game
       </button>
 
-      <form
-        onSubmit={handleJoinGame}
-        className="flex flex-col items-center gap-2"
-      >
+      <form onSubmit={handleJoinGame} className={styles.joinForm}>
         <input
           type="text"
           value={joinGameId}
           onChange={(e) => setJoinGameId(e.target.value)}
           placeholder="Enter Game ID to Join"
-          className="border p-2 rounded w-80"
+          className={styles.inputField}
         />
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-        >
+        <button type="submit" className={styles.joinButton}>
           Join Game
         </button>
       </form>
 
-      <button
-        onClick={handlePlayVsBot}
-        className="bg-purple-600 text-white px-6 py-3 rounded text-lg hover:bg-purple-700"
-      >
+      <button onClick={handlePlayVsBot} className={styles.botButton}>
         Play vs Bot
       </button>
 
-      {error && <p className="text-red-500">{error}</p>}
+      {error && <p className={styles.errorText}>{error}</p>}
     </div>
   );
 }
