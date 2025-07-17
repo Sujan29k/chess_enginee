@@ -1,0 +1,205 @@
+.mainContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* LeftSection holds board + side panels */
+.leftSection {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Chat on the right */
+.rightChat {
+  min-width: 300px;
+  max-width: 350px;
+  flex-grow: 1;
+}
+
+/* Panels on sides (captured pieces + moves) */
+.sidePanel {
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  gap: 10px;
+}
+
+/* Make captured rows scrollable if needed */
+.capturedRow {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  gap: 8px;
+}
+
+/* Captured item */
+.capturedItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  background-color: #706a6a;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+
+/* Board panel (center) */
+.boardPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Grid for board */
+.boardGrid {
+  display: grid;
+  grid-template-columns: repeat(8, 60px);
+  grid-template-rows: repeat(8, 60px);
+  border: 2px solid #333;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Each square */
+.square {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.light {
+  background-color: #f0d9b5;
+}
+
+.dark {
+  background-color: #b58863;
+}
+
+.selected {
+  background-color: #86b1e3 !important;
+}
+
+.highlight {
+  background-color: #f7ec6e !important;
+}
+
+/* Move list */
+.moveListWrapper {
+  width: 100%;
+  overflow-x: auto;
+  padding: 6px 0;
+}
+
+.moveList {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  white-space: nowrap;
+  scroll-snap-type: x mandatory;
+  padding: 4px 8px;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.moveItem {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background-color: #e4e4e4;
+  font-weight: 500;
+  font-size: 14px;
+  scroll-snap-align: start;
+  color: #000;
+}
+
+
+/* Promotion Overlay */
+.promotionOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.promotionDialog {
+  background-color: white;
+  padding: 20px 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .mainContainer {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .leftSection {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .sidePanel {
+    flex-direction: column;
+    align-items: center;
+    min-width: 100%;
+  }
+
+  .capturedRow {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .moveListWrapper {
+    width: 30rem;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 4px;
+  }
+  
+  .moveList {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    white-space: nowrap;
+    width: max-content;
+    min-width: 100%;
+    scroll-snap-type: x mandatory;
+  }
+  
+  .moveItem {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background-color: #e4e4e4;
+    font-weight: 500;
+    color: #333;
+    scroll-snap-align: start;
+  }
+   
+  
+
+  .rightChat {
+    width: 100%;
+    max-width: none;
+  }
+}

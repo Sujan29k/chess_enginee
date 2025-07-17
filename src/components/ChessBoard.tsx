@@ -5,6 +5,7 @@ import { Chess, Square, Move, PieceSymbol } from "chess.js";
 import Image from "next/image";
 import { getSocket } from "@/lib/socket";
 import ChatBox from "@/components/ChatBox"; // <-- Import ChatBox
+import styles from "@/styles/ChessBoard.module.css";
 
 export default function ChessBoard({
   gameId,
@@ -342,158 +343,164 @@ export default function ChessBoard({
 
     return () => clearTimeout(timer);
   }, [vsBot, game, turn, playerColor, gameOver, botLevel]);
-
   return (
     <>
-      <div className="flex gap-6 mt-6">
-        {/* Left: Captures */}
-        <div className="w-24">
-          <h4 className="font-bold mb-2">Black Captured</h4>
-          {Object.entries(capturedPieces.b).map(([type, count]) =>
-            count > 0 ? (
-              <div key={type} className="mb-1">
-                <Image
-                  src={`/icpieces/b${type.toUpperCase()}.svg`}
-                  alt={type}
-                  width={30}
-                  height={30}
-                />
-                ×{count}
-              </div>
-            ) : null
-          )}
-        </div>
-
-        {/* Center: Board */}
-        <div className="flex flex-col items-center">
-          <div className="text-xl font-bold mb-2">Game ID: {gameId}</div>
-          <div className="mb-2 font-semibold">
-            Turn: {turn === "w" ? "White" : "Black"}
-          </div>
-          {gameOver && (
-            <div className="text-red-500 font-bold mb-2">{gameOver}</div>
-          )}
-
-          {rematchAvailable && (
-            <button
-              onClick={requestRematch}
-              className="mb-2 px-4 py-1 bg-blue-600 text-white rounded"
-            >
-              {rematchRequested ? "Confirm Rematch" : "Rematch"}
-            </button>
-          )}
-
-          <button
-            onClick={handleUndo}
-            className="mb-2 px-4 py-1 bg-yellow-400 text-black rounded"
-          >
-            Undo
-          </button>
-
-          <button
-            onClick={handleQuit}
-            className="mb-4 px-4 py-1 bg-red-500 text-white rounded"
-          >
-            Quit
-          </button>
-
-          <div className="grid grid-cols-8 w-[480px] h-[480px] border-4 border-neutral-800">
-            {game.board().map((row, rowIndex) =>
-              row.map((_, colIndex) => {
-                const square = ("abcdefgh"[colIndex] +
-                  (8 - rowIndex)) as Square;
-                const piece = game.get(square);
-                const isLight = (rowIndex + colIndex) % 2 === 0;
-                const isHighlighted = legalMoves.includes(square);
-                const isSelected = selectedSquare === square;
-                let bg = isLight ? "bg-gray-300" : "bg-gray-700";
-                if (isHighlighted) bg = "bg-green-400";
-                else if (isSelected) bg = "bg-yellow-400";
-
-                return (
-                  <div
-                    key={square}
-                    className={`aspect-square flex items-center justify-center ${bg} cursor-pointer`}
-                    onClick={() => handleSquareClick(rowIndex, colIndex)}
-                  >
-                    {piece && (
-                      <Image
-                        src={`/icpieces/${
-                          piece.color
-                        }${piece.type.toUpperCase()}.svg`}
-                        alt={piece.type}
-                        width={60}
-                        height={60}
-                      />
-                    )}
+      <div className={styles.mainContainer}>
+        {/* LEFT SECTION: board + captured pieces + move list */}
+        <div className={styles.leftSection}>
+          {/* Left: Captured by Black */}
+          <div className={styles.sidePanel}>
+            <h4 className="font-bold mb-2">Black Captured</h4>
+            <div className={styles.capturedRow}>
+              {Object.entries(capturedPieces.b).map(([type, count]) =>
+                count > 0 ? (
+                  <div key={type} className={styles.capturedItem}>
+                    <Image
+                      src={`/icpieces/b${type.toUpperCase()}.svg`}
+                      alt={type}
+                      width={30}
+                      height={30}
+                    />
+                    ×{count}
                   </div>
-                );
-              })
+                ) : null
+              )}
+            </div>
+          </div>
+
+          {/* Center: Board and controls */}
+          <div className={styles.boardPanel}>
+            <div className="text-xl font-bold mb-2">Game ID: {gameId}</div>
+            <div className="mb-2 font-semibold">
+              Turn: {turn === "w" ? "White" : "Black"}
+            </div>
+            {gameOver && (
+              <div className="text-red-500 font-bold mb-2">{gameOver}</div>
+            )}
+            {rematchAvailable && (
+              <button
+                onClick={requestRematch}
+                className="mb-2 px-4 py-1 bg-blue-600 text-white rounded"
+              >
+                {rematchRequested ? "Confirm Rematch" : "Rematch"}
+              </button>
+            )}
+            <button
+              onClick={handleUndo}
+              className="mb-2 px-4 py-1 bg-yellow-400 text-black rounded"
+            >
+              Undo
+            </button>
+            <button
+              onClick={handleQuit}
+              className="mb-4 px-4 py-1 bg-red-500 text-white rounded"
+            >
+              Quit
+            </button>
+
+            <div className={styles.boardGrid}>
+              {game.board().map((row, rowIndex) =>
+                row.map((_, colIndex) => {
+                  const square = ("abcdefgh"[colIndex] +
+                    (8 - rowIndex)) as Square;
+                  const piece = game.get(square);
+                  const isLight = (rowIndex + colIndex) % 2 === 0;
+                  const isHighlighted = legalMoves.includes(square);
+                  const isSelected = selectedSquare === square;
+
+                  let squareClass = isLight ? styles.light : styles.dark;
+                  if (isHighlighted) squareClass = styles.highlight;
+                  else if (isSelected) squareClass = styles.selected;
+
+                  return (
+                    <div
+                      key={square}
+                      className={`${styles.square} ${squareClass}`}
+                      onClick={() => handleSquareClick(rowIndex, colIndex)}
+                    >
+                      {piece && (
+                        <Image
+                          src={`/icpieces/${
+                            piece.color
+                          }${piece.type.toUpperCase()}.svg`}
+                          alt={piece.type}
+                          width={60}
+                          height={60}
+                        />
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {vsBot && (
+              <div className="mt-4 flex items-center gap-2">
+                <label htmlFor="difficulty" className="font-semibold">
+                  Bot Difficulty:
+                </label>
+                <select
+                  id="difficulty"
+                  value={botLevel}
+                  onChange={(e) => setBotLevel(Number(e.target.value))}
+                  className="border px-2 py-1 rounded"
+                >
+                  {Array.from({ length: 21 }, (_, i) => (
+                    <option key={i} value={i}>
+                      Level {i}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
-        </div>
 
-        {/* Right: White Captured + Move History */}
-        <div className="w-40">
-          <div className="mb-4">
+          {/* Right: Captured by White + Move list */}
+          <div className={styles.sidePanel}>
             <h4 className="font-bold mb-2">White Captured</h4>
-            {Object.entries(capturedPieces.w).map(([type, count]) =>
-              count > 0 ? (
-                <div key={type} className="mb-1">
-                  <Image
-                    src={`/icpieces/w${type.toUpperCase()}.svg`}
-                    alt={type}
-                    width={30}
-                    height={30}
-                  />
-                  ×{count}
-                </div>
-              ) : null
-            )}
-          </div>
+            <div className={styles.capturedRow}>
+              {Object.entries(capturedPieces.w).map(([type, count]) =>
+                count > 0 ? (
+                  <div key={type} className={styles.capturedItem}>
+                    <Image
+                      src={`/icpieces/w${type.toUpperCase()}.svg`}
+                      alt={type}
+                      width={30}
+                      height={30}
+                    />
+                    ×{count}
+                  </div>
+                ) : null
+              )}
+            </div>
 
-          <div className="text-sm">
-            <h4 className="font-semibold mb-1">Moves:</h4>
-            <ol className="list-decimal pl-5 max-h-60 overflow-y-auto">
-              {moveHistory.map((m, idx) => (
-                <li key={idx}>{`${m.color === "w" ? "White" : "Black"}: ${
-                  m.san
-                }`}</li>
-              ))}
-            </ol>
+            <div className="mt-4">
+              <h4 className="font-semibold mb-1">Moves:</h4>
+              <div className={styles.moveListWrapper}>
+                <div className={styles.moveList}>
+                  {moveHistory.map((m, idx) => (
+                    <div key={idx} className={styles.moveItem}>
+                      {m.color === "w" ? "W" : "B"}: {m.san}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* ChatBox floated on the right */}
+        {!vsBot && (
+          <div className={styles.rightChat}>
+            <ChatBox gameId={gameId} playerId={playerId} />
+          </div>
+        )}
       </div>
 
-      {!vsBot && (
-        <div className="mt-6 flex justify-center text-black">
-          <ChatBox gameId={gameId} playerId={playerId} />
-        </div>
-      )}
-      {vsBot && (
-        <div className="mb-4 flex items-center gap-2">
-          <label htmlFor="difficulty" className="font-semibold">
-            Bot Difficulty:
-          </label>
-          <select
-            id="difficulty"
-            value={botLevel}
-            onChange={(e) => setBotLevel(Number(e.target.value))}
-            className="border px-2 py-1 rounded"
-          >
-            {Array.from({ length: 21 }, (_, i) => (
-              <option key={i} value={i}>
-                Level {i}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Promotion UI */}
+      {/* Promotion Dialog */}
       {promotionMove && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center">
+        <div className={styles.promotionOverlay}>
+          <div className={styles.promotionDialog}>
             <h2 className="text-lg font-bold mb-2">Choose Promotion</h2>
             <div className="flex gap-4">
               {["q", "r", "n", "b"].map((p) => (
