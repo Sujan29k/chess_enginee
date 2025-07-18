@@ -6,19 +6,20 @@ import Image from "next/image";
 import { getSocket } from "@/lib/socket";
 import ChatBox from "@/components/ChatBox"; // <-- Import ChatBox
 import styles from "@/styles/ChessBoard.module.css";
+import { Undo2, LogOut, TimerIcon, Volume2 } from "lucide-react";
 
 export default function ChessBoard({
   gameId,
   playerColor,
   playerId,
   vsBot = false,
-  level = 10, // Default bot level
+  level = 10,
 }: {
   gameId: string;
   playerColor: "w" | "b";
   playerId: string;
   vsBot?: boolean;
-  level?: number; // Bot difficulty level
+  level?: number;
 }) {
   const [game, setGame] = useState(new Chess());
   const gameRef = useRef(game);
@@ -36,7 +37,7 @@ export default function ChessBoard({
   } | null>(null);
   const [rematchRequested, setRematchRequested] = useState(false);
   const [rematchAvailable, setRematchAvailable] = useState(false);
-  const [botLevel, setBotLevel] = useState(level); // Default difficulty
+  const [botLevel, setBotLevel] = useState(level);
 
   const [capturedPieces, setCapturedPieces] = useState<{
     w: Record<PieceSymbol, number>;
@@ -346,9 +347,7 @@ export default function ChessBoard({
   return (
     <>
       <div className={styles.mainContainer}>
-        {/* LEFT SECTION: board + captured pieces + move list */}
         <div className={styles.leftSection}>
-          {/* Left: Captured by Black */}
           <div className={styles.sidePanel}>
             <h4 className="font-bold mb-2">Black Captured</h4>
             <div className={styles.capturedRow}>
@@ -368,9 +367,11 @@ export default function ChessBoard({
             </div>
           </div>
 
-          {/* Center: Board and controls */}
           <div className={styles.boardPanel}>
-            <div className="text-xl font-bold mb-2">Game ID: {gameId}</div>
+            <div className="text-xl font-bold mb-2 flex justify-between items-center w-full">
+              <span>Game ID: {gameId}</span>
+              <TimerIcon className="text-blue-500" size={22} />
+            </div>
             <div className="mb-2 font-semibold">
               Turn: {turn === "w" ? "White" : "Black"}
             </div>
@@ -385,18 +386,18 @@ export default function ChessBoard({
                 {rematchRequested ? "Confirm Rematch" : "Rematch"}
               </button>
             )}
-            <button
-              onClick={handleUndo}
-              className="mb-2 px-4 py-1 bg-yellow-400 text-black rounded"
-            >
-              Undo
-            </button>
-            <button
-              onClick={handleQuit}
-              className="mb-4 px-4 py-1 bg-red-500 text-white rounded"
-            >
-              Quit
-            </button>
+            <div className="flex gap-3 mb-4">
+              <Undo2
+                className="cursor-pointer text-yellow-400 hover:text-yellow-300"
+                size={28}
+                onClick={handleUndo}
+              />
+              <LogOut
+                className="cursor-pointer text-red-500 hover:text-red-400"
+                size={28}
+                onClick={handleQuit}
+              />
+            </div>
 
             <div className={styles.boardGrid}>
               {game.board().map((row, rowIndex) =>
@@ -455,7 +456,6 @@ export default function ChessBoard({
             )}
           </div>
 
-          {/* Right: Captured by White + Move list */}
           <div className={styles.sidePanel}>
             <h4 className="font-bold mb-2">White Captured</h4>
             <div className={styles.capturedRow}>
@@ -473,7 +473,6 @@ export default function ChessBoard({
                 ) : null
               )}
             </div>
-
             <div className="mt-4">
               <h4 className="font-semibold mb-1">Moves:</h4>
               <div className={styles.moveListWrapper}>
@@ -489,7 +488,6 @@ export default function ChessBoard({
           </div>
         </div>
 
-        {/* ChatBox floated on the right */}
         {!vsBot && (
           <div className={styles.rightChat}>
             <ChatBox gameId={gameId} playerId={playerId} />
@@ -497,7 +495,6 @@ export default function ChessBoard({
         )}
       </div>
 
-      {/* Promotion Dialog */}
       {promotionMove && (
         <div className={styles.promotionOverlay}>
           <div className={styles.promotionDialog}>
