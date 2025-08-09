@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       message: "Game created",
       gameId: newGame.gameId,
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
